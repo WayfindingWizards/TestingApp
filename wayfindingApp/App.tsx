@@ -10,7 +10,7 @@ import {
 import useBLE from './useBLE';
 
 const App = () => {
-  const {requestPermissions, scanForPeripherals, distance, location} = useBLE();
+  const {requestPermissions, scanForPeripherals, distance, location, rs1, rs2, rs3} = useBLE();
   const xCoord: number = location[0] as number;
   const yCoord: number = location[1] as number;
 
@@ -27,9 +27,13 @@ const App = () => {
       <View style={styles.heartRateTitleWrapper}>
         <Text style={{fontSize: 50, color: 'black'}}>Meters</Text>
         <Text style={{fontSize: 200, color: 'black'}}>{distance}</Text>
-        <Text style={{fontSize: 30, color: 'black'}}>Location</Text>
+        {/* <Text style={{fontSize: 30, color: 'black'}}>Location</Text>
         <Text style={{fontSize: 100, color: 'black'}}>{xCoord}</Text>
-        <Text style={{fontSize: 100, color: 'black'}}>{yCoord}</Text>
+        <Text style={{fontSize: 100, color: 'black'}}>{yCoord}</Text> */}
+        <Text style={{fontSize: 50, color: 'black'}}>rssi</Text>
+        <Text style={{fontSize: 70, color: 'black'}}>{rs1}</Text>
+        <Text style={{fontSize: 70, color: 'black'}}>{rs2}</Text>
+        <Text style={{fontSize: 70, color: 'black'}}>{rs3}</Text>
       </View>
       <TouchableOpacity onPress={scanForDevices} style={styles.ctaButton}>
         <Text style={styles.ctaButtonText}>FIND THE DISTANCE</Text>

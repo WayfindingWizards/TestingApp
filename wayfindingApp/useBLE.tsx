@@ -42,14 +42,20 @@ interface BluetoothLowEnergyApi {
   scanForPeripherals(): void;
   distance: number;
   location: number[];
+  rs1: number;
+  rs2: number;
+  rs3: number;
 }
 
 const distanceBuffer: [number, number, number] = [-1, -1, -1];
-let numOfSamples = 0;
+//let numOfSamples = 0;
 
 function useBLE(): BluetoothLowEnergyApi {
   const [distance, setDistance] = useState<number>(-1);
   const [location, setLocation] = useState<number[]>([-1, -1]);  // ***Question: Can we even have default values? How else do we do this?
+  const [rs1, setRs1] = useState<number>(-1);
+  const [rs2, setRs2] = useState<number>(-1);
+  const [rs3, setRs3] = useState<number>(-1);
 
   const requestPermissions = async (cb: VoidCallback) => {
     if (Platform.OS === 'android') {
@@ -107,6 +113,7 @@ function useBLE(): BluetoothLowEnergyApi {
           const queueSize = 20; //
           switch (deviceID){  // ***TODO: Set beacon IDs and coordinates
             case 'fda50693a4e24fb1afcfc6eb07647825':
+              setRs1(deviceRssi);
               xCoord = 0;
               yCoord = 0;
               //replace oldest beacon data
@@ -114,13 +121,15 @@ function useBLE(): BluetoothLowEnergyApi {
                 deviceBuffer.dequeue;}
               deviceBuffer.enqueue([deviceRssi, xCoord, yCoord]);
             case '00000000000000000000000000000000':
+              setRs2(deviceRssi);
               xCoord = 3;
               yCoord = 0;
               //replace oldest beacon data
               if (queueSize >= 20) {
                 deviceBuffer.dequeue; }
               deviceBuffer.enqueue([deviceRssi, xCoord, yCoord]);
-            case 'fda50693a4e24fb1afcfc6eb07647826 ':
+            case 'fda50693a4e24fb1afcfc6eb07647826':
+              setRs3(deviceRssi);
               xCoord = 3;
               yCoord = 3;
               //replace oldest beacon data
@@ -192,6 +201,9 @@ function useBLE(): BluetoothLowEnergyApi {
     requestPermissions,
     distance,
     location,
+    rs1,
+    rs2,
+    rs3,
   };
 }
 
