@@ -97,7 +97,7 @@ function useBLE(): BluetoothLowEnergyApi {
         scanMode: ScanMode.LowLatency,
       },
       (error, device) => {
-        if (device?.name?.includes('IPSWW')) { // find beacon with general identifier
+        if (device?.name?.includes('Beacon')) { // find beacon with general identifier
           const deviceRssi = device.rssi!; // ***QUESTION: Should we calculate distance within trilaterate() or before? Using the buffer estimation gets us a more accuract distance, but im not sure how to implement that when we are getting data from multiple beacons
           const deviceID = device.id;
           let xCoord = -1;
@@ -106,23 +106,23 @@ function useBLE(): BluetoothLowEnergyApi {
           const deviceBuffer = new Queue<number[]>; // [rssi, xCoord, yCoord]
           const queueSize = 20; //
           switch (deviceID){  // ***TODO: Set beacon IDs and coordinates
-            case '1':
-              xCoord = 10;
-              yCoord = 10;
+            case 'fda50693a4e24fb1afcfc6eb07647825':
+              xCoord = 0;
+              yCoord = 0;
               //replace oldest beacon data
               if (queueSize >= 20) {
                 deviceBuffer.dequeue;}
               deviceBuffer.enqueue([deviceRssi, xCoord, yCoord]);
-            case '2':
-              xCoord = 10;
-              yCoord = 10;
+            case '00000000000000000000000000000000':
+              xCoord = 3;
+              yCoord = 0;
               //replace oldest beacon data
               if (queueSize >= 20) {
                 deviceBuffer.dequeue; }
               deviceBuffer.enqueue([deviceRssi, xCoord, yCoord]);
-            case '3':
-              xCoord = 10;
-              yCoord = 10;
+            case 'fda50693a4e24fb1afcfc6eb07647826 ':
+              xCoord = 3;
+              yCoord = 3;
               //replace oldest beacon data
               if (queueSize >= 20) {
                 deviceBuffer.dequeue;}
