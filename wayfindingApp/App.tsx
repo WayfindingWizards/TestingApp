@@ -11,8 +11,8 @@ import useBLE from './useBLE';
 
 const App = () => {
   const {requestPermissions, scanForPeripherals, distance, location} = useBLE();
-  const xCoord = location[0];
-  const yCoord = location[1];
+  const xCoord: number = location[0] as number;
+  const yCoord: number = location[1] as number;
 
   const scanForDevices = () => {
     requestPermissions(isGranted => {
