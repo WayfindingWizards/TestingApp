@@ -25,8 +25,8 @@ const App = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.heartRateTitleWrapper}>
-        <Text style={{fontSize: 50, color: 'black'}}>Meters</Text>
-        <Text style={{fontSize: 200, color: 'black'}}>{distance}</Text>
+        {/* <Text style={{fontSize: 50, color: 'black'}}>Meters</Text>
+        <Text style={{fontSize: 200, color: 'black'}}>{distance}</Text> */}
         {/* <Text style={{fontSize: 30, color: 'black'}}>Location</Text>
         <Text style={{fontSize: 100, color: 'black'}}>{xCoord}</Text>
         <Text style={{fontSize: 100, color: 'black'}}>{yCoord}</Text> */}
@@ -34,6 +34,9 @@ const App = () => {
         <Text style={{fontSize: 70, color: 'black'}}>{rs1}</Text>
         <Text style={{fontSize: 70, color: 'black'}}>{rs2}</Text>
         <Text style={{fontSize: 70, color: 'black'}}>{rs3}</Text>
+        <Text style={{fontSize: 50, color: 'black'}}>location</Text>
+        <Text style={{fontSize: 70, color: 'black'}}>{xCoord}</Text>
+        <Text style={{fontSize: 70, color: 'black'}}>{yCoord}</Text>
       </View>
       <TouchableOpacity onPress={scanForDevices} style={styles.ctaButton}>
         <Text style={styles.ctaButtonText}>FIND THE DISTANCE</Text>

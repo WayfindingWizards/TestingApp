@@ -16,7 +16,7 @@ interface IQueue<T> {
 class Queue<T> implements IQueue<T> {
   private storage: T[] = [];
 
-  constructor(private capacity: number = Infinity) {} // adjust capacity
+  constructor(private capacity: number = 30) {} // adjust capacity
 
   enqueue(item: T): void {
     if (this.size() === this.capacity) {
@@ -48,7 +48,8 @@ interface BluetoothLowEnergyApi {
 }
 
 const distanceBuffer: [number, number, number] = [-1, -1, -1];
-//let numOfSamples = 0;
+let numOfSamples = 0;
+const deviceBuffer = new Queue<number[]>; // [rssi, xCoord, yCoord]
 
 function useBLE(): BluetoothLowEnergyApi {
   const [distance, setDistance] = useState<number>(-1);
@@ -94,7 +95,6 @@ function useBLE(): BluetoothLowEnergyApi {
       cb(true);
     }
   };
-
   const scanForPeripherals = () =>
     bleManager.startDeviceScan(
       null,
@@ -103,50 +103,59 @@ function useBLE(): BluetoothLowEnergyApi {
         scanMode: ScanMode.LowLatency,
       },
       (error, device) => {
-        if (device?.name?.includes('Beacon')) { // find beacon with general identifier
+        if (device?.name?.includes('BCPro')) { // find beacon with general identifier
           const deviceRssi = device.rssi!; // ***QUESTION: Should we calculate distance within trilaterate() or before? Using the buffer estimation gets us a more accuract distance, but im not sure how to implement that when we are getting data from multiple beacons
           const deviceID = device.id;
+          console.log(device.id);
           let xCoord = -1;
           let yCoord = -1;
-          //let deviceBuffer = Array<[number, number, number]>; // queue would be appropriate to store by fifo
-          const deviceBuffer = new Queue<number[]>; // [rssi, xCoord, yCoord]
-          const queueSize = 20; //
-          switch (deviceID){  // ***TODO: Set beacon IDs and coordinates
-            case 'fda50693a4e24fb1afcfc6eb07647825':
+          //const queueSize = 20;
+          switch (deviceID){
+            case 'DD:60:03:00:02:C0': //Feasy: fda50693a4e24fb1afcfc6eb07647825
               setRs1(deviceRssi);
               xCoord = 0;
               yCoord = 0;
               //replace oldest beacon data
-              if (queueSize >= 20) {
-                deviceBuffer.dequeue;}
+              if (deviceBuffer.size() >= 20) {
+                deviceBuffer.dequeue();
+              }
               deviceBuffer.enqueue([deviceRssi, xCoord, yCoord]);
-            case '00000000000000000000000000000000':
+              break;
+            case 'DD:60:03:00:03:3C': //Feasy: 00000000000000000000000000000000
               setRs2(deviceRssi);
               xCoord = 3;
               yCoord = 0;
               //replace oldest beacon data
-              if (queueSize >= 20) {
-                deviceBuffer.dequeue; }
+              if (deviceBuffer.size() >= 20) {
+                deviceBuffer.dequeue();
+              }
               deviceBuffer.enqueue([deviceRssi, xCoord, yCoord]);
-            case 'fda50693a4e24fb1afcfc6eb07647826':
-              setRs3(deviceRssi);
-              xCoord = 3;
-              yCoord = 3;
+              break;
+            case 'DD:60:03:00:03:3C': //Feasy: fda50693a4e24fb1afcfc6eb07647826
+              setRs3(-50); //***test value: change to deviceRssi
+              xCoord = 1.5;
+              yCoord = 30;
               //replace oldest beacon data
-              if (queueSize >= 20) {
-                deviceBuffer.dequeue;}
+              if (deviceBuffer.size() >= 20) {
+                deviceBuffer.dequeue();
+              }
               deviceBuffer.enqueue([deviceRssi, xCoord, yCoord]);
+              break;
           }
           // order by distance (may be unoptimal, could use "sorted queue"?)
-          let orderedBuffer: Array<number[]> = new Array<number[]>;
-          let devicePackage: number[] | undefined;
+          let orderedBuffer: Array<number[]> = new Array<number[]>; // We keep an ordered buffer so that when more than 3 beacons are in range we trilaterate using the 3 closest beacons
+          let devicePackage: number[] | undefined = [-1,-1,-1];
+          //console.log(deviceBuffer.size());
+          //console.log(devicePackage);
           // put queue into array to be sorted
           for (let i = 0; i < deviceBuffer.size(); i++){
             if (devicePackage !== undefined && deviceBuffer !== undefined) {
-              devicePackage = deviceBuffer.dequeue();  // ***FIX: deviceBuffer.dequeue() could be undefined I guess?
+              devicePackage = deviceBuffer.dequeue();
+              //console.log(devicePackage);
               orderedBuffer.push(devicePackage as number[]);
               if (devicePackage !== undefined && deviceBuffer !== undefined) {
-              deviceBuffer.enqueue(devicePackage);}
+                deviceBuffer.enqueue(devicePackage)
+              }
             }
           }
 
@@ -154,6 +163,10 @@ function useBLE(): BluetoothLowEnergyApi {
             const d1 = Math.pow(10, (-40 - beacon1[0]!) / (10 * 3));  // -40: rssi@1m; 3: path loss exponent
             const d2 = Math.pow(10, (-40 - beacon2[0]!) / (10 * 3));
             const d3 = Math.pow(10, (-40 - beacon3[0]!) / (10 * 3));
+            // console.log(d1);
+            // console.log(d2);
+            // console.log(d3);
+            // console.log('----------');
             const x1 = beacon1[1];
             const x2 = beacon2[1];
             const x3 = beacon3[1];
@@ -174,10 +187,15 @@ function useBLE(): BluetoothLowEnergyApi {
             return [x, y];
           }
 
-          orderedBuffer.sort((a, b) => a[0] - b[0]); // order by descending distance/RSSI
+          orderedBuffer.sort((a, b) => b[0] - a[0]); // order by descending distance/RSSI
+          // console.log(orderedBuffer[0]);
+          // console.log(orderedBuffer[1]);
+          // console.log(orderedBuffer[2]);
+          // console.log('-------------');
           if (orderedBuffer.length >= 3){
             let userCoords: number[] = trilaterate(orderedBuffer[0], orderedBuffer[1], orderedBuffer[2]);
             setLocation(userCoords);
+            //console.log(userCoords);
           }
           // Old distance calculation for 1 beacon with average buffer
           /*const currentDistance = Math.pow(10, (-40 - device.rssi!) / (10 * 3));
@@ -192,6 +210,7 @@ function useBLE(): BluetoothLowEnergyApi {
           }
 
           numOfSamples++;*/
+          
         }
       },
     );
