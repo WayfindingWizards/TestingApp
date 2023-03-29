@@ -26,7 +26,7 @@ interface BluetoothLowEnergyApi {
 const numberOfBeacons = 6;
 let beaconSignals = new Array<number>(numberOfBeacons); // beaconSignals is an array where beaconSignals[beaconNum] = rssi
 let signalTimes = new Array<number>(numberOfBeacons);
-let deleteOldest = false;
+let deleteOld = false;
 
 function useBLE(): BluetoothLowEnergyApi {
   const [closestBeacon, setclosestBeacon] = useState<number>(-1);
@@ -84,8 +84,6 @@ function useBLE(): BluetoothLowEnergyApi {
           const deviceID = device.id;
           let beaconNum: number;
           let currentTime = Date.now();
-          console.log({currentTime});
-          let oldestBeacon: number;
 
           // Match deviceID to beacon and put signal in array
           switch (deviceID){
@@ -121,26 +119,27 @@ function useBLE(): BluetoothLowEnergyApi {
               break;
           }
 
-          console.log('------BEFORE------');
-          console.log({beaconSignals});
-          console.log({signalTimes});
-          console.log({deleteOldest});
-          
+          // invalidate old rssi values once every other scan
+            // consider changing this to once every few scans or once every time period
+          if (deleteOld){
+            for(let i = 0; i < numberOfBeacons; i++){
+              if((currentTime - signalTimes[i]) > 3000){
+                beaconSignals[i] = -100;
+                console.log(i);
+                console.log({beaconSignals});
+                console.log({signalTimes});
+                console.log({currentTime});
+                console.log("OLD DATA RESETTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT");
+                signalTimes[i] = undefined as number; // ignore error; setting as undefined prevents from continuously reseting signal when signal is lost
+              }
+            }  
+          }
+
+          deleteOld = !deleteOld;
+
           // set closest beacon from largest rssi value
           setclosestBeacon(beaconSignals.indexOf(beaconSignals.reduce((a, b) => Math.max(a, b), -Infinity)));
 
-          // invalidate oldest rssi value once every other scan
-          if (deleteOldest){
-            oldestBeacon = signalTimes.indexOf(signalTimes.reduce((a, b) => Math.min(a, b), Infinity));
-            console.log({oldestBeacon});
-            beaconSignals[oldestBeacon] = -100;
-            signalTimes[oldestBeacon] = currentTime;  //reset signalTime for oldestBeacon (otherwise we would continue to invalidate the same beaconNum until we received a signal)
-          }
-          deleteOldest = !deleteOldest;
-          console.log('------AFTER------');
-          console.log({beaconSignals});
-          console.log({signalTimes});
-          console.log({deleteOldest});
 
           
         }
