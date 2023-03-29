@@ -1,3 +1,9 @@
+// To run app:
+// connect device or start emulator
+// check device is connected by running: adb devices
+// in cmd navigate to project folder and run: npx react-native start
+// in another cmd window navigate to project folder and run: npx react-native run-android
+
 /* eslint-disable no-bitwise */
 import {useState} from 'react';
 import {PermissionsAndroid, Platform} from 'react-native';
@@ -16,9 +22,11 @@ interface BluetoothLowEnergyApi {
   closestBeacon: number;
 }
 
-// this needs to be reset every 'period' we want to update location
-  //find max value -> update location -> reset beaconSignals
-let beaconSignals = new Array<number>(6); // beaconSignals is an array where beaconSignals[beaconNum] = rssi
+// variables to declare outside of scan
+const numberOfBeacons = 6;
+let beaconSignals = new Array<number>(numberOfBeacons); // beaconSignals is an array where beaconSignals[beaconNum] = rssi
+let signalTimes = new Array<number>(numberOfBeacons);
+let deleteOldest = false;
 
 function useBLE(): BluetoothLowEnergyApi {
   const [closestBeacon, setclosestBeacon] = useState<number>(-1);
@@ -71,48 +79,69 @@ function useBLE(): BluetoothLowEnergyApi {
       (error, device) => {
         // Parse signal from our beacons
         if (device?.name?.includes('Beacon' || 'BCPro')) {  // General Identifiers = { BlueCharm:'BCPro', Feasy:'Beacon' }
+          // variables to declare each scan
           const deviceRssi = device.rssi!;
           const deviceID = device.id;
           let beaconNum: number;
+          let currentTime = Date.now();
+          console.log({currentTime});
+          let oldestBeacon: number;
 
           // Match deviceID to beacon and put signal in array
           switch (deviceID){
             case 'DC:0D:30:10:4E:F2': //Feasy1
               beaconNum = 0;
               beaconSignals[beaconNum] = deviceRssi;
-              console.log(beaconNum);
+              signalTimes[beaconNum] = currentTime;
               break;
             case 'DC:0D:30:10:4F:57': //Feasy2
               beaconNum = 1;
               beaconSignals[beaconNum] = deviceRssi;
-              console.log(beaconNum);
+              signalTimes[beaconNum] = currentTime;
               break;
             case 'DC:0D:30:10:4F:3D': //Feasy3
               beaconNum = 2;
               beaconSignals[beaconNum] = deviceRssi;
-              console.log(beaconNum);
+              signalTimes[beaconNum] = currentTime;
               break;
             case 'DD:60:03:00:02:C0': //BC1
               beaconNum = 3;
               beaconSignals[beaconNum] = deviceRssi;
-              console.log(beaconNum);
+              signalTimes[beaconNum] = currentTime;
               break;
             case 'DD:60:03:00:03:3C': //BC2
               beaconNum = 4;
               beaconSignals[beaconNum] = deviceRssi;
-              console.log(beaconNum);
+              signalTimes[beaconNum] = currentTime;
               break;
             case 'DD:60:03:00:00:4F': //BC3
               beaconNum = 5;
               beaconSignals[beaconNum] = deviceRssi;
-              console.log(beaconNum);
+              signalTimes[beaconNum] = currentTime;
               break;
           }
 
-          console.log(beaconSignals);
+          console.log('------BEFORE------');
+          console.log({beaconSignals});
+          console.log({signalTimes});
+          console.log({deleteOldest});
           
-          //this is wrong and for testing purposes
+          // set closest beacon from largest rssi value
           setclosestBeacon(beaconSignals.indexOf(beaconSignals.reduce((a, b) => Math.max(a, b), -Infinity)));
+
+          // invalidate oldest rssi value once every other scan
+          if (deleteOldest){
+            oldestBeacon = signalTimes.indexOf(signalTimes.reduce((a, b) => Math.min(a, b), Infinity));
+            console.log({oldestBeacon});
+            beaconSignals[oldestBeacon] = -100;
+            signalTimes[oldestBeacon] = currentTime;  //reset signalTime for oldestBeacon (otherwise we would continue to invalidate the same beaconNum until we received a signal)
+          }
+          deleteOldest = !deleteOldest;
+          console.log('------AFTER------');
+          console.log({beaconSignals});
+          console.log({signalTimes});
+          console.log({deleteOldest});
+
           
         }
       },
