@@ -27,6 +27,8 @@ const numberOfBeacons = 6;
 let beaconSignals = new Array<number>(numberOfBeacons); // beaconSignals is an array where beaconSignals[beaconNum] = rssi
 let signalTimes = new Array<number>(numberOfBeacons);
 let deleteOld = false;
+let prevTime = Date.now();
+let recentClosest: number[] = [];
 
 function useBLE(): BluetoothLowEnergyApi {
   const [closestBeacon, setclosestBeacon] = useState<number>(-1);
@@ -125,21 +127,57 @@ function useBLE(): BluetoothLowEnergyApi {
             for(let i = 0; i < numberOfBeacons; i++){
               if((currentTime - signalTimes[i]) > 3000){
                 beaconSignals[i] = -100;
-                console.log(i);
-                console.log({beaconSignals});
-                console.log({signalTimes});
-                console.log({currentTime});
-                console.log("OLD DATA RESETTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT");
+                // console.log(i);
+                // console.log({beaconSignals});
+                // console.log({signalTimes});
+                // console.log({currentTime});
+                // console.log("OLD DATA RESETTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT");
                 signalTimes[i] = undefined as number; // ignore error; setting as undefined prevents from continuously reseting signal when signal is lost
               }
             }  
           }
 
           deleteOld = !deleteOld;
+          
+          // add current closest to recentClosest
+          recentClosest.push(beaconSignals.indexOf(beaconSignals.reduce((a, b) => Math.max(a, b), -Infinity)));
 
-          // set closest beacon from largest rssi value
-          setclosestBeacon(beaconSignals.indexOf(beaconSignals.reduce((a, b) => Math.max(a, b), -Infinity)));
+          function findMode(arr: Array<number>){  // find mode of recentClosest, if empty return -1
+            // check for empty array
+            if(arr.length == 0){
+              return -1;
+            }
 
+            // sort array
+            arr = arr.sort((n1,n2) => n1 - n2);
+            let mode: number = 0;
+            let modeCount: number = 0;
+            let currentCount: number = 0;
+
+            // find mode
+            for(let i = 1; i < arr.length; i++){
+              if(arr[i-1] == arr[i]){
+                currentCount += 1;
+                if(currentCount > modeCount){
+                  mode = arr[i];
+                  modeCount = currentCount;
+                }
+              }
+              else {
+                currentCount = 0;
+              }
+            }
+            console.log({mode});
+            return mode;
+          }
+
+          // every second:
+          if((currentTime - prevTime) > 1000){
+            console.log({recentClosest});
+            setclosestBeacon(findMode(recentClosest));
+            recentClosest = [];
+            prevTime = currentTime;
+          }
 
           
         }
