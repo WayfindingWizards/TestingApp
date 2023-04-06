@@ -10,6 +10,8 @@
     "test": "jest"
   },
   "dependencies": {
+    "csv-parse": "^5.3.6",
+    "fs": "^0.0.1-security",
     "react": "18.2.0",
     "react-native": "0.71.2",
     "react-native-ble-plx": "^2.0.3",

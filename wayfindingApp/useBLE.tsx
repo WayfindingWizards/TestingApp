@@ -10,6 +10,7 @@ import {PermissionsAndroid, Platform} from 'react-native';
 import {BleManager, ScanMode} from 'react-native-ble-plx';
 import {PERMISSIONS, requestMultiple} from 'react-native-permissions';
 import DeviceInfo from 'react-native-device-info';
+import 'csv-parse';
 
 
 const bleManager = new BleManager();
@@ -21,6 +22,91 @@ interface BluetoothLowEnergyApi {
   scanForPeripherals(): void;
   closestBeacon: number;
 }
+
+// csv handling
+// from: https://nodogmablog.bryanhogan.net/2020/10/reading-csv-files-into-objects-with-node-js/
+var fs = require('fs');
+var { parse } = require('csv-parse');
+
+
+function readCSV() {
+    let beacons: Array<Beacon> = [];
+    let count = 0;
+
+    fs.createReadStream('beaconIDs.csv')
+        .pipe(parse({ delimiter: ',', from_line: 2 }))
+        .on('data', function (row: string[]) {
+            count++;
+            beacons.push(new Beacon(row[0] as unknown as number, row[1]))
+
+            
+        })
+        .on('end', function () {
+            printBeacons(beacons);
+        });
+}
+
+function printBeacons(beacons: Array<Beacon>) {
+    console.log(beacons);
+}
+
+// class Beacon {
+//     constructor(beaconNum, macAddress) {
+//         this.beaconNum = beaconNum;
+//         this.macAddress = macAddress;
+//     }
+// }
+
+// beacon class
+class Beacon {
+  private timeOfSignal: number = undefined as unknown as number;
+  private rssi: number = undefined as unknown as number;
+  private macAddress: string;
+  private beaconNum: number;
+  
+
+  // constructor(timeOfSignal: number, rssi: number, macAddress: string) {
+  //   this.timeOfSignal = timeOfSignal;
+  //   this.rssi = rssi;
+  //   this.macAddress = macAddress;
+  //   this.beaconNum = findNum(this.macAddress);  // get beacon number with ID from csv file, there are csv packages to help
+  // }
+
+  constructor(beaconNum: number, macAddress: string) {
+    this.beaconNum = beaconNum;
+    this.macAddress = macAddress;
+  }
+
+  getTimeOfSignal() {
+    return this.timeOfSignal;
+  }
+
+  getRssi() {
+    return this.rssi;
+  }
+
+  getBeaconNum() {
+    return this.beaconNum;
+  }
+
+  setTimeofSignal(timeOfSignal: number) {
+    this.timeOfSignal = timeOfSignal;
+  }
+
+  setRssi(rssi: number) {
+    this.rssi = rssi;
+  }
+  
+}
+
+readCSV();
+
+
+
+// for lines in beaconIDs.csv:
+  // create new Beacon object
+
+
 
 // variables to declare outside of scan
 const numberOfBeacons = 6;
@@ -84,42 +170,33 @@ function useBLE(): BluetoothLowEnergyApi {
           // variables to declare each scan
           const deviceRssi = device.rssi!;
           const deviceID = device.id;
-          let beaconNum: number;
+          let beaconNum: number = -1;
           let currentTime = Date.now();
 
           // Match deviceID to beacon and put signal in array
-          switch (deviceID){
+          switch (deviceID){  // is a dictionary better?
             case 'DC:0D:30:10:4E:F2': //Feasy1
               beaconNum = 0;
-              beaconSignals[beaconNum] = deviceRssi;
-              signalTimes[beaconNum] = currentTime;
               break;
             case 'DC:0D:30:10:4F:57': //Feasy2
               beaconNum = 1;
-              beaconSignals[beaconNum] = deviceRssi;
-              signalTimes[beaconNum] = currentTime;
               break;
             case 'DC:0D:30:10:4F:3D': //Feasy3
               beaconNum = 2;
-              beaconSignals[beaconNum] = deviceRssi;
-              signalTimes[beaconNum] = currentTime;
               break;
             case 'DD:60:03:00:02:C0': //BC1
               beaconNum = 3;
-              beaconSignals[beaconNum] = deviceRssi;
-              signalTimes[beaconNum] = currentTime;
               break;
             case 'DD:60:03:00:03:3C': //BC2
               beaconNum = 4;
-              beaconSignals[beaconNum] = deviceRssi;
-              signalTimes[beaconNum] = currentTime;
               break;
             case 'DD:60:03:00:00:4F': //BC3
               beaconNum = 5;
-              beaconSignals[beaconNum] = deviceRssi;
-              signalTimes[beaconNum] = currentTime;
               break;
           }
+
+          beaconSignals[beaconNum] = deviceRssi;
+          signalTimes[beaconNum] = currentTime;
 
           // invalidate old rssi values once every other scan
             // consider changing this to once every few scans or once every time period
@@ -132,7 +209,7 @@ function useBLE(): BluetoothLowEnergyApi {
                 // console.log({signalTimes});
                 // console.log({currentTime});
                 // console.log("OLD DATA RESETTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT");
-                signalTimes[i] = undefined as number; // ignore error; setting as undefined prevents from continuously reseting signal when signal is lost
+                signalTimes[i] = undefined as unknown as number; // ignore error; setting as undefined prevents from continuously reseting signal when signal is lost
               }
             }  
           }
@@ -142,7 +219,7 @@ function useBLE(): BluetoothLowEnergyApi {
           // add current closest to recentClosest
           recentClosest.push(beaconSignals.indexOf(beaconSignals.reduce((a, b) => Math.max(a, b), -Infinity)));
 
-          function findMode(arr: Array<number>){  // find mode of recentClosest, if empty return -1
+          function findMode(arr: Array<number>){  // find mode of recentClosest, if empty return -1  //****************** Other algorithms could improve this
             // check for empty array
             if(arr.length == 0){
               return -1;
